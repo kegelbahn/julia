@@ -373,8 +373,7 @@ struct IdentityUnitRange{T<:AbstractUnitRange} <: AbstractUnitRange{Int}
     indices::T
 end
 IdentityUnitRange(S::IdentityUnitRange) = S
-# IdentityUnitRanges are offset and thus have offset axes, so they are their own axes... but
-# we need to strip the wholedim marker because we don't know how they'll be used
+# IdentityUnitRanges are offset and thus have offset axes, so they are their own axes...
 axes(S::IdentityUnitRange) = (S,)
 unsafe_indices(S::IdentityUnitRange) = (S,)
 axes1(S::IdentityUnitRange) = S
@@ -473,7 +472,8 @@ size(iter::LinearIndices) = map(unsafe_length, iter.indices)
 #     i
 # end
 # AS
-@inline function getindex(iter::LinearIndices, i::Int)
+function getindex(iter::LinearIndices, i::Int)
+    @_inline_meta
     @boundscheck checkbounds(iter, i)
     @inbounds isa(iter, LinearIndices{1}) ? iter.indices[1][i] : first(iter)+i-1
 end
