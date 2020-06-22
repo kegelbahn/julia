@@ -373,7 +373,8 @@ struct IdentityUnitRange{T<:AbstractUnitRange} <: AbstractUnitRange{Int}
     indices::T
 end
 IdentityUnitRange(S::IdentityUnitRange) = S
-# IdentityUnitRanges are offset and thus have offset axes, so they are their own axes
+# IdentityUnitRanges are offset and thus have offset axes, so they are their own axes... but
+# we need to strip the wholedim marker because we don't know how they'll be used
 axes(S::IdentityUnitRange) = (S,)
 unsafe_indices(S::IdentityUnitRange) = (S,)
 axes1(S::IdentityUnitRange) = S
@@ -466,11 +467,17 @@ convert(::Type{LinearIndices{N,R}}, inds::LinearIndices{N}) where {N,R} =
 IndexStyle(::Type{<:LinearIndices}) = IndexLinear()
 axes(iter::LinearIndices) = map(axes1, iter.indices)
 size(iter::LinearIndices) = map(unsafe_length, iter.indices)
-function getindex(iter::LinearIndices, i::Int)
-    @_inline_meta
+# function getindex(iter::LinearIndices, i::Int)
+#     @_inline_meta
+#     @boundscheck checkbounds(iter, i)
+#     i
+# end
+# AS
+@inline function getindex(iter::LinearIndices, i::Int)
     @boundscheck checkbounds(iter, i)
-    i
+    @inbounds isa(iter, LinearIndices{1}) ? iter.indices[1][i] : first(iter)+i-1
 end
+
 function getindex(iter::LinearIndices, i::AbstractRange{<:Integer})
     @_inline_meta
     @boundscheck checkbounds(iter, i)
@@ -478,11 +485,17 @@ function getindex(iter::LinearIndices, i::AbstractRange{<:Integer})
 end
 # More efficient iteration — predominantly for non-vector LinearIndices
 # but one-dimensional LinearIndices must be special-cased to support OffsetArrays
-iterate(iter::LinearIndices{1}, s...) = iterate(axes1(iter.indices[1]), s...)
+# iterate(iter::LinearIndices{1}, s...) = iterate(axes1(iter.indices[1]), s...)
+# AS
+iterate(iter::LinearIndices{1}, s...) = iterate(iter.indices[1], s...)
 iterate(iter::LinearIndices, i=1) = i > length(iter) ? nothing : (i, i+1)
 
 # Needed since firstindex and lastindex are defined in terms of LinearIndices
 first(iter::LinearIndices) = 1
-first(iter::LinearIndices{1}) = (@_inline_meta; first(axes1(iter.indices[1])))
+# first(iter::LinearIndices{1}) = (@_inline_meta; first(axes1(iter.indices[1])))
+# AS
+first(iter::LinearIndices{1}) = (@_inline_meta; first(iter.indices[1]))
 last(iter::LinearIndices) = (@_inline_meta; length(iter))
-last(iter::LinearIndices{1}) = (@_inline_meta; last(axes1(iter.indices[1])))
+# last(iter::LinearIndices{1}) = (@_inline_meta; last(axes1(iter.indices[1])))
+# AS
+last(iter::LinearIndices{1}) = (@_inline_meta; last(iter.indices[1]))
