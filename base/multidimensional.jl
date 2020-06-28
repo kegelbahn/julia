@@ -478,6 +478,8 @@ module IteratorsMD
     iterate(iter::Reverse{<:CartesianIndices{0}}, state=false) = state ? nothing : (CartesianIndex(), true)
 
     Base.LinearIndices(inds::CartesianIndices{N,R}) where {N,R} = LinearIndices{N,R}(inds.indices)
+    # AS
+    Base.LinearIndices(inds::CartesianIndices{1,R}) where R<:Tuple{AbstractUnitRange{Int}} = LinearIndices{1,R}((Base.OneTo{Int}(length(inds.indices[1])),))
 
     # Views of reshaped CartesianIndices are used for partitions — ensure these are fast
     const CartesianPartition{T<:CartesianIndex, P<:CartesianIndices, R<:ReshapedArray{T,1,P}} = SubArray{T,1,R,Tuple{UnitRange{Int}},false}
